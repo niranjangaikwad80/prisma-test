@@ -1,4 +1,4 @@
-name: Prisma Twistcli Pipeline
+name: Prisma Twistcli Pipeline v2
 
 on:
   push:
