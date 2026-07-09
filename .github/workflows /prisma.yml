@@ -1,15 +1,13 @@
-name: Demo GitHub Actions Pipeline
+name: Prisma Twistcli Scan
 
 on:
   push:
     branches:
       - main
 
-  workflow_dispatch:
-
 jobs:
 
-  build:
+  image-scan:
 
     runs-on: ubuntu-latest
 
@@ -18,28 +16,35 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Show Runner Information
-        run: |
-          echo "Runner Name: $RUNNER_NAME"
-          echo "Operating System: $RUNNER_OS"
-
-      - name: Show Repository Files
-        run: |
-          pwd
-          ls -la
-
       - name: Build Docker Image
         run: |
-          docker build -t demo-app:latest .
+          docker build -t demo-app:${{ github.sha }} .
 
-      - name: Verify Docker Image
+      - name: Download twistcli
+        env:
+          CONSOLE: ${{ secrets.PRISMA_CONSOLE }}
+          ACCESS_KEY: ${{ secrets.PRISMA_ACCESS_KEY }}
+          SECRET_KEY: ${{ secrets.PRISMA_SECRET_KEY }}
         run: |
-          docker images
+          curl -k \
+            -u "$ACCESS_KEY:$SECRET_KEY" \
+            "$CONSOLE/api/v1/util/twistcli" \
+            -o twistcli
 
-      - name: Run Docker Container
-        run: |
-          docker run --rm demo-app:latest
+          chmod +x twistcli
 
-      - name: Pipeline Finished
+      - name: Verify twistcli
         run: |
-          echo "GitHub Actions pipeline completed successfully!"
+          ./twistcli --version
+
+      - name: Scan Docker Image
+        env:
+          CONSOLE: ${{ secrets.PRISMA_CONSOLE }}
+          ACCESS_KEY: ${{ secrets.PRISMA_ACCESS_KEY }}
+          SECRET_KEY: ${{ secrets.PRISMA_SECRET_KEY }}
+        run: |
+          ./twistcli images scan \
+            --address $CONSOLE \
+            --user $ACCESS_KEY \
+            --password $SECRET_KEY \
+            demo-app:${{ github.sha }}
