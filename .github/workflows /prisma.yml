@@ -1,10 +1,9 @@
-name: Demo GitHub Actions Pipeline
+name: Prisma Twistcli Pipeline
 
 on:
   push:
     branches:
       - main
-
   workflow_dispatch:
 
 jobs:
@@ -16,22 +15,46 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Build the Docker image (optional)
+      # Display runner information
+      - name: Show Runner Information
+        run: |
+          echo "Runner Name: $RUNNER_NAME"
+          echo "Operating System: $RUNNER_OS"
+
+      # Build the Docker image
       - name: Build Docker Image
         run: |
           docker build -t demo-app:latest .
 
-      # Run Prisma Cloud Scan
-      - name: Run Prisma Cloud
-        id: prisma-cloud
-        uses: bridgecrewio/checkov-action@master
-        env:
-          PRISMA_API_URL: https://api.prismacloud.io
-        with:
-          api-key: ${{ secrets.BC_API_KEY }}
-          use_enforcement_rules: true
-
-      # Display completion message
-      - name: Pipeline Completed
+      # Verify the Docker image
+      - name: List Docker Images
         run: |
-          echo "Prisma Cloud scan completed successfully."
+          docker images
+
+      # Download Twistcli
+      - name: Download Twistcli
+        run: |
+          curl --progress-bar -L \
+            --header "authorization: Bearer ${{ secrets.PRISMA_TOKEN }}" \
+            "${{ secrets.PRISMA_CONSOLE_URL }}/api/v1/util/twistcli" \
+            -o twistcli
+
+          chmod +x twistcli
+
+      # Verify Twistcli installation
+      - name: Verify Twistcli
+        run: |
+          ./twistcli --version
+
+      # Scan the Docker image
+      - name: Scan Docker Image
+        run: |
+          ./twistcli images scan \
+            --address "${{ secrets.PRISMA_CONSOLE_URL }}" \
+            --token "${{ secrets.PRISMA_TOKEN }}" \
+            demo-app:latest
+
+      # Pipeline completed
+      - name: Pipeline Finished
+        run: |
+          echo "Prisma Twistcli scan completed successfully!"
