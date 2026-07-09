@@ -1,0 +1,38 @@
+name: Prisma Twistcli Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: |
+          docker build -t demo-app:latest .
+
+      - name: List Docker Images
+        run: |
+          docker images
+
+      - name: Download Twistcli
+        run: |
+          curl --progress-bar -L \
+            --header "authorization: Bearer ${{ secrets.PRISMA_TOKEN }}" \
+            "${{ secrets.PRISMA_CONSOLE_URL }}/api/v1/util/twistcli" \
+            -o twistcli
+
+          chmod +x twistcli
+
+      - name: Verify Twistcli
+        run: |
+          ls -l twistcli
+          ./twistcli --version
