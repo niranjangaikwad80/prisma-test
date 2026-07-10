@@ -36,3 +36,12 @@ jobs:
         run: |
           ls -l twistcli
           ./twistcli --version
+
+      - name: Scan Image
+        run: |
+          ./twistcli images scan \
+          --address "${{ secrets.PRISMA_CONSOLE_URL }}" \
+          --token "${{ secrets.PRISMA_TOKEN }}" \
+          --details \
+          --publish=true \
+          demo-app:latest
